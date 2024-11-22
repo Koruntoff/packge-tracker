@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@sveltejs/adapter-auto": "^3.3.1",
+    "@sveltejs/kit": "^2.8.1"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^4.0.1"
+  }
+}

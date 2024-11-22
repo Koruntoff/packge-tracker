@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=mailroom
+      - POSTGRES_USER=mailroom_user
+      - POSTGRES_PASSWORD=your_secure_password
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+      - static_volume:/app/staticfiles
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgres://mailroom_user:your_secure_password@db:5432/mailroom
+      - DEBUG=1
+      - SECRET_KEY=your_secret_key_here
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --no-input &&
+             gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: mailroom_frontend
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - type: bind
+        source: ./frontend
+        target: /app
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8000/api
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - static_volume:/app/staticfiles
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  postgres_data:
+  static_volume:
