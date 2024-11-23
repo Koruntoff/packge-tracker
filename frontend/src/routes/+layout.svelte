@@ -1,16 +1,33 @@
 <script>
-    import "../app.css";
-    import { page } from '$app/stores';
+  import "../app.css";
+  import Dashboard from './+page.svelte';
+  import Scan from './scan/+page.svelte';
+  import Customers from './customers/+page.svelte';
+    
+  let activeTab = window.location.pathname;
+  let currentComponent;
   
-    $: activeTab = $page.url.pathname;
+  const navItems = [
+    { name: 'Dashboard', path: '/', component: Dashboard },
+    { name: 'Package', path: '/scan', component: Scan },
+    { name: 'Customers', path: '/customers', component: Customers },
+    { name: 'Locations', path: '/locations' },
+    { name: 'Schedule', path: '/schedule' }
+  ];
   
-    const navItems = [
-      { name: 'Dashboard', path: '/' },
-      { name: 'Scan Package', path: '/scan' },
-      { name: 'Customers', path: '/customers' },
-      { name: 'Locations', path: '/locations' },
-      { name: 'Schedule', path: '/schedule' }
-    ];
+  const handleNavigation = (path) => {
+    activeTab = path;
+    history.pushState(null, '', path);
+    updateComponent(path);
+  };
+  
+  const updateComponent = (path) => {
+    const route = navItems.find(item => item.path === path) || navItems[0];
+    currentComponent = route.component;
+  };
+  
+  // Initialize component on page load
+  updateComponent(activeTab);
   </script>
   
   <div class="min-h-screen bg-gradient-to-b from-purple-950 to-purple-900">
@@ -22,43 +39,24 @@
         </div>
         <nav class="space-y-1">
           {#each navItems as item}
-            <a
-              href={item.path}
+            <button
+              on:click={() => handleNavigation(item.path)}
               class="w-full flex items-center px-3 py-2 text-sm rounded-md transition-colors
                 {activeTab === item.path ? 'bg-purple-800/50 text-white' : 'text-purple-300 hover:bg-purple-800/30 hover:text-white'}"
             >
               <span>{item.name}</span>
-            </a>
+            </button>
           {/each}
         </nav>
       </div>
   
-      <!-- Main Content -->
+      <!-- Content -->
       <div class="flex-1 overflow-auto">
-        <div class="bg-purple-950 border-b border-white/10">
-          <div class="flex items-center justify-between px-8 py-4">
-            <div class="flex items-center space-x-4">
-              <div class="relative">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  class="pl-10 pr-4 py-2 bg-white/5 rounded-md text-white placeholder-purple-300 focus:outline-none focus:ring-1 focus:ring-purple-400 w-64"
-                />
-              </div>
-            </div>
-            <div class="flex items-center space-x-4">
-              <button class="p-2 text-purple-300 hover:text-white transition-colors">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-              </button>
-              <div class="h-8 w-8 bg-purple-800 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Page Content -->
-        <slot />
+        {#if currentComponent}
+          <svelte:component this={currentComponent} />
+        {:else}
+          <div class="p-8 text-white">Page not found</div>
+        {/if}
       </div>
     </div>
   </div>

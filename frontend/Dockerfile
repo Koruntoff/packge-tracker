@@ -3,15 +3,16 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Install dependencies first
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
 
-# Copy source code
+# Install vite globally
+RUN npm install -g vite
+
+# Copy project files
 COPY . .
 
 EXPOSE 5173
 
-# Set host to 0.0.0.0 to allow external connections
-ENV HOST=0.0.0.0
-
-CMD ["sh", "-c", "npm run dev -- --host 0.0.0.0"]
+# Use npx to run vite
+CMD ["npx", "vite", "--host"]

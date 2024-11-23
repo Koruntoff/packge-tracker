@@ -5,9 +5,9 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        postgresql-client \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/
@@ -16,12 +16,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Create necessary directories
 RUN mkdir -p /app/staticfiles /app/static /app/mediafiles
 
-# Copy project
+# Copy project files
 COPY . /app/
 
-# Collect static files
-RUN python manage.py collectstatic --noinput --clear
+# Fix permissions
+RUN chmod +x entrypoint.sh
 
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "core.wsgi:application"]
+ENTRYPOINT ["./entrypoint.sh"]

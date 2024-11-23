@@ -1,35 +1,35 @@
 from rest_framework import serializers
-from .models import Customer, StorageLocation, Package, Invoice, Schedule
-
-class CustomerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Customer
-        fields = '__all__'
+from .models import Package, StorageLocation, PackageImage
 
 class StorageLocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = StorageLocation
         fields = '__all__'
 
+class PackageImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PackageImage
+        fields = ['id', 'image', 'uploaded_at', 'description']
+
 class PackageSerializer(serializers.ModelSerializer):
-    customer_name = serializers.CharField(source='customer.name', read_only=True)
-    location_code = serializers.CharField(source='location.location_code', read_only=True)
+    location_details = StorageLocationSerializer(source='location', read_only=True)
+    images = PackageImageSerializer(many=True, read_only=True)
+    uploaded_images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
+    )
 
     class Meta:
         model = Package
         fields = '__all__'
+        extra_fields = ['location_details', 'images', 'uploaded_images']
 
-class InvoiceSerializer(serializers.ModelSerializer):
-    customer_name = serializers.CharField(source='customer.name', read_only=True)
-    package_count = serializers.IntegerField(source='packages.count', read_only=True)
-
-    class Meta:
-        model = Invoice
-        fields = '__all__'
-
-class ScheduleSerializer(serializers.ModelSerializer):
-    staff_name = serializers.CharField(source='staff.get_full_name', read_only=True)
-
-    class Meta:
-        model = Schedule
-        fields = '__all__'
+    def create(self, validated_data):
+        uploaded_images = validated_data.pop('uploaded_images', [])
+        package = Package.objects.create(**validated_data)
+        
+        for image in uploaded_images:
+            PackageImage.objects.create(package=package, image=image)
+        
+        return package

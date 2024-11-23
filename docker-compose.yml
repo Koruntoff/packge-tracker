@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15
@@ -13,7 +11,9 @@ services:
       - "5432:5432"
 
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     volumes:
       - ./backend:/app
       - static_volume:/app/staticfiles
@@ -25,27 +25,23 @@ services:
       - DATABASE_URL=postgres://mailroom_user:your_secure_password@db:5432/mailroom
       - DEBUG=1
       - SECRET_KEY=your_secret_key_here
-      - ALLOWED_HOSTS=localhost,127.0.0.1
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py collectstatic --no-input &&
-             gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,backend
+      - DJANGO_SETTINGS_MODULE=core.settings
 
   frontend:
     build: 
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: mailroom_frontend
-    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     ports:
       - "5173:5173"
-    volumes:
-      - type: bind
-        source: ./frontend
-        target: /app
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://localhost:8000/api
+      - VITE_API_URL=http://backend:8000/api
+    depends_on:
+      - backend
 
   nginx:
     image: nginx:alpine
@@ -58,6 +54,7 @@ services:
       - backend
       - frontend
 
+# Define volumes
 volumes:
-  postgres_data:
+  postgres_data:  # This was missing
   static_volume:
