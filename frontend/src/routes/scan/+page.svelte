@@ -27,7 +27,7 @@
     'UPS',
     'USPS',
     'DHL',
-    'Amazon Logistics'
+    'Amazon'
   ];
 
   onMount(async () => {

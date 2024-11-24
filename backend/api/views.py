@@ -1,9 +1,15 @@
+# backend/api/views.py
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from .models import Package, StorageLocation, PackageImage
-from .serializers import PackageSerializer, StorageLocationSerializer, PackageImageSerializer
+from .models import Package, StorageLocation, PackageImage, ScheduledEvent
+from .serializers import (
+    PackageSerializer, 
+    StorageLocationSerializer, 
+    PackageImageSerializer,
+    ScheduledEventSerializer
+)
 
 class StorageLocationViewSet(viewsets.ModelViewSet):
     queryset = StorageLocation.objects.all()
@@ -37,31 +43,32 @@ class PackageViewSet(viewsets.ModelViewSet):
         serializer = PackageImageSerializer(package_image)
         return Response(serializer.data, status=201)
 
-    @action(detail=True, methods=['post'])
-    def scan_barcode(self, request, pk=None):
-        try:
-            barcode_data = request.data.get('barcode_data')
-            package = get_object_or_404(Package, pk=pk)
-            package.barcode_data = barcode_data
-            package.save()
-            
-            serializer = self.get_serializer(package)
-            return Response(serializer.data)
-        except Exception as e:
-            return Response({'error': str(e)}, status=400)
+class ScheduledEventViewSet(viewsets.ModelViewSet):
+    queryset = ScheduledEvent.objects.all()
+    serializer_class = ScheduledEventSerializer
 
-    @action(detail=False, methods=['post'])
-    def lookup_barcode(self, request):
-        barcode = request.data.get('barcode')
-        try:
-            # Here you would typically integrate with a courier's API
-            # For now, we'll just return some dummy data
-            package_info = {
-                'tracking_number': barcode,
-                'courier': 'fedex',
-                'weight': 1.5,
-                # Add other fields as needed
-            }
-            return Response(package_info)
-        except Exception as e:
-            return Response({'error': str(e)}, status=400)
+    @action(detail=False, methods=['get'])
+    def filtered(self, request):
+        event_type = request.query_params.get('event_type', None)
+        start_date = request.query_params.get('start_date', None)
+        end_date = request.query_params.get('end_date', None)
+        
+        queryset = self.queryset
+
+        if event_type:
+            queryset = queryset.filter(event_type=event_type)
+        
+        if start_date:
+            queryset = queryset.filter(start_time__gte=start_date)
+        
+        if end_date:
+            queryset = queryset.filter(end_time__lte=end_date)
+
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)
+
+@action(detail=False, methods=['get'])
+def find_by_tracking(self, request):
+    tracking_number = request.query_params.get('number', '')
+    # Add your customer matching logic here
+    return Response(...)
